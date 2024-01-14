@@ -44,13 +44,32 @@ class Transcriber(object):
 		for file in glob.glob('corpus/**/*.wav', recursive=True):
 			try:
 				out_name = file[:-4] + '.txt'
-				# get transcription from Whisper
-				answer = self.model.transcribe(file, suppress_tokens=[-1] + self.number_tokens)
+				out2_name = file[:-4] +"_Fixed"+ '.txt'
+				out3_name = file[:-4] +"_JP"+ '.txt'
+				file_flag = os.path.exists(out2_name)
+				file_flag2 = os.path.exists(out3_name)
+				if file_flag2:
+					print("skip：",out3_name)
+					continue
+				
+				if not file_flag:
+					# get transcription from Whisper
+					answer = self.model.transcribe(file, suppress_tokens=[-1] + self.number_tokens)
+				else:
+					with open(out2_name, 'r+', encoding='utf-8') as out:
+						answer['text'] = out.read()
+						out.close()
 				
 				# language specifics here
 				if lang.upper() == "JP":
 					# turn the kanji into G2p output
 					trns_str_kanji = fxy(answer['text'])
+					print("function：1")
+					if not file_flag2:
+						with open(out3_name, 'w+', encoding='utf-8') as out:
+							out.write(trns_str_kanji)
+							out.close()
+					print("function：2")
 					trns_str = self.jpn_g2p(trns_str_kanji)
 				elif lang.upper() == "ZH":
 					# remove any spaces just in case ig
