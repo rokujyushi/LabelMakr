@@ -103,15 +103,18 @@ class labbu:
 		p = Path(fpath)
 		self.lab_name = p.stem
 		self.lab = []
+		index = 0
 		try:
 			with open(fpath, 'r', encoding='utf-8') as f:
 				for line in f:
+					index = index + 1
 					line = fxy(line)
 					split_line = line.rstrip().split(' ')
 					self.lab.append({'phone': split_line[2],'start': split_line[0],'end': split_line[1]})
 				f.close()
 		except:
 			print(f"Unable to open lab {self.lab_name}")
+			print(f"See line {index}")
 			print('skipping')
 		return self.lab
 
