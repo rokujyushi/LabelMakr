@@ -71,7 +71,8 @@ class Transcriber(object):
 					print("skip：",out3_name)
 					continue
 				
-				if file_flag:
+				answer = {}
+				if not file_flag:
 				# get transcription from Whisper
 					whisper.DecodingOptions(language=lang.lower())
 					answer = self.model.transcribe(file, suppress_tokens=[-1] + self.number_tokens)
@@ -86,7 +87,7 @@ class Transcriber(object):
 					trns_str_kanjis = fxy(answer['text']).splitlines()
 					if not file_flag2:
 						with open(out3_name, 'w+', encoding='utf-8') as out:
-							out.write(trns_str_kanji)
+							out.write(answer['text'])
 							out.close()
 					trns_str =''
 					i = 0 
