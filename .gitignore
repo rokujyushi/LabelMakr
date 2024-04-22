@@ -10,6 +10,11 @@ __pycache__/
 .Python
 python/
 SOFA/
+LabelMakr_v030_Patch1.0.zip
+models/
+_local_env/
+assets/
+g2p-jp/
 build/
 develop-eggs/
 dist/
