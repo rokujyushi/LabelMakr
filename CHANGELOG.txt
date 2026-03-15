@@ -1,3 +1,4 @@
+# LabelMakr
 v001
 - Initial release
 - Supports only English SOFA Alignment with tgm_sofa
@@ -69,3 +70,7 @@ v030
 	- Better interfacing with pygame mixer for playing audio
 - Much easier to implement custom SOFA models.
 	- Here's a guide! https://github.com/spicytigermeat/LabelMakr/blob/v030/DOCS/implement_custom_sofa_model.md
+
+# LabelMakr+ 
+v031
+- Added support for pydomino models!
