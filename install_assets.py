@@ -91,6 +91,33 @@ def add_some_assets():
 		os.rename(files[i], f'{folder}/JPN_Romaji_Test2_Plus/{_files[i]}')
 	logger.info('Done setting up add_some_assets for LabelMakr.')
 
+def JP_g2p_asset():
+	logger.info('SetUp JP_g2p_asset for LabelMakr.')
+	logger.info('Downloading pyopenjtalk-plus models.')
+
+	url = 'https://github.com/CjangCjengh/japanese_g2p/releases/download/v1.0.0/japanese_g2p.zip'
+	filepath = 'japanese_g2p.zip'
+	r = requests.get(url, stream=True)
+	total_size = int(r.headers.get('content-length', 0))
+	block_size = 1024
+	with tqdm(total=total_size, unit='B', unit_scale=True) as pbar:
+		with open(filepath, 'wb') as file:
+			for data in r.iter_content(block_size):
+				pbar.update(len(data))
+				file.write(data)
+	if total_size != 0 and pbar.n != total_size:
+		raise RuntimeError('Could not download file.')
+	logger.info('Sucessfully donwloaded models.')
+	logger.info('Unzipping...')
+	with zipfile.ZipFile(filepath, 'r') as archive:
+		archive.extractall('./')
+	os.rename('japanese_g2p', f'g2p-jp')
+	os.remove(filepath)
+	logger.info('Done setting up JP_g2p_asset for LabelMakr.')
+	
+
 spicytigermeat_asset()
 add_some_assets()
+JP_g2p_asset()
+
 logger.info('Successfully downloaded models. You may exit this window.')
