@@ -15,8 +15,12 @@ run_trns: "Lancer la transcription"
 run_trns_tt: "Lance la transcription des fichiers dans le dossier 'corpus' à l'aide de Whisper."
 
 # aligner window strings:
+aligner_lbl: "Choisir l'aligneur"
+aligner_lbl_tt: "Choisissez SOFA ou pydomino pour l'alignement."
 model_lbl: "Sélectionnez le modèle SOFA"
 model_lbl_tt: "Détermine le modèle SOFA utilisé pour aligner les phonèmes de vos transcriptions."
+pydomino_model_lbl: "Sélectionnez le modèle pydomino"
+pydomino_model_lbl_tt: "Détermine le modèle ONNX utilisé par pydomino pour l'alignement."
 op_lbl: "Séléctionnez le format de sortie"
 
 # note for translators:
@@ -31,6 +35,8 @@ op_lbl_tt: |
 
 run_align: "Aligner les Labels"
 run_align_tt: "Aligne les labels d'après les transcriptions à l'aide du modèle SOFA sélectionné."
+run_align_pydomino: "Aligner avec pydomino"
+run_align_pydomino_tt: "Aligne les labels avec le modèle pydomino sélectionné."
 
 # settings:
 disp_lang: "Langue d'affichage"

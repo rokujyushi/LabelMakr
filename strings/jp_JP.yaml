@@ -14,8 +14,12 @@ run_trns: "転写を実行"
 run_trns_tt: "Whisperではコルパスフォルダの中のすべての「.wav」ファイルを転写する。"
 
 # aligner window strings:
+aligner_lbl: "アライナーを選ぶ"
+aligner_lbl_tt: "SOFA または pydomino を選択します。"
 model_lbl: "SOFAモデルを選ぶ"
 model_lbl_tt: "Select the SOFA model you will use to align the phonemes to your transcriptions."
+pydomino_model_lbl: "pydomino モデルを選ぶ"
+pydomino_model_lbl_tt: "pydomino で使用する ONNX モデルを選択します。"
 op_lbl: "転写のフォマット"
 
 # note for translators:
@@ -29,6 +33,8 @@ op_lbl_tt: |
 
 run_align: "Align Labels"
 run_align_tt: "Aligns labels based on transcripts using the selected SOFA model."
+run_align_pydomino: "pydomino で整置"
+run_align_pydomino_tt: "選択した pydomino モデルでラベルを整置します。"
 
 # settings:
 disp_lang: "Display Language"

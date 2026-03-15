@@ -2,6 +2,7 @@ import zipfile
 import os
 import requests
 import logging
+import sys
 from pathlib import Path as P
 from tqdm import tqdm
 
@@ -15,29 +16,81 @@ logging.basicConfig(format="| %(levelname)s | %(message)s | %(asctime)s |",
 					datefmt="%H:%M:%S")
 logger.setLevel(logging.INFO)
 
-logger.info('Downloading SOFA models.')
+folder = P('./models')
+if not folder.exists():
+	folder.mkdir()
 
-url = 'https://github.com/spicytigermeat/LabelMakr/releases/download/assets_v030/models.zip'
-filepath = 'models.zip'
-r = requests.get(url, stream=True)
+def spicytigermeat_asset():
+	logger.info('SetUp spicytigermeat_assets for LabelMakr.')
+	logger.info('Downloading SOFA models.')
 
-total_size = int(r.headers.get('content-length', 0))
-block_size = 1024
+	url = 'https://github.com/spicytigermeat/LabelMakr/releases/download/assets_v030/models.zip'
+	filepath = 'models.zip'
+	r = requests.get(url, stream=True)
 
-with tqdm(total=total_size, unit='B', unit_scale=True) as pbar:
-	with open('models.zip', 'wb') as file:
-		for data in r.iter_content(block_size):
-			pbar.update(len(data))
-			file.write(data)
+	total_size = int(r.headers.get('content-length', 0))
+	block_size = 1024
 
-if total_size != 0 and pbar.n != total_size:
-	raise RuntimeError('Could not download file.')
+	with tqdm(total=total_size, unit='B', unit_scale=True) as pbar:
+		with open(filepath, 'wb') as file:
+			for data in r.iter_content(block_size):
+				pbar.update(len(data))
+				file.write(data)
 
-logger.info('Sucessfully donwloaded models. Unzipping...')
+	if total_size != 0 and pbar.n != total_size:
+		raise RuntimeError('Could not download file.')
 
-with zipfile.ZipFile('models.zip', 'r') as archive:
-	archive.extractall('./models')
+	logger.info('Sucessfully donwloaded models.')
+	logger.info('Unzipping...')
 
-os.remove('models.zip')
+	with zipfile.ZipFile(filepath, 'r') as archive:
+		archive.extractall('./models')
 
+	os.remove(filepath)
+	logger.info('Done setting up spicytigermeat_assets for LabelMakr.')
+
+def add_some_assets():
+	logger.info('SetUp add_some_assets for LabelMakr.')
+	logger.info('Downloading JPN_Romaji_Test2_Plus models.')
+
+	url = 'https://github.com/Greenleaf2001/SOFA_Models/releases/tag/JPN_Test2_Plus'
+	files = ['hparams.yaml','step.100000.ckpt','japanese-extension-sofa.txt']
+	for file in files:
+		r = requests.get(f'{url}/{file}', stream=True)
+
+		total_size = int(r.headers.get('content-length', 0))
+		block_size = 1024
+		with tqdm(total=total_size, unit='B', unit_scale=True) as pbar:
+			with open(file, 'wb') as f:
+				for data in r.iter_content(block_size):
+					pbar.update(len(data))
+					f.write(data)
+		if total_size != 0 and pbar.n != total_size:
+			raise RuntimeError('Could not download file.')
+	
+	logger.info('Sucessfully donwloaded models.')
+	logger.info('Moving files...')
+	_files = ['hparams.yaml','model.ckpt','dict.txt']
+	for i, file in enumerate(files):
+		if i == 2:
+			logger.info('Setup dict.txt')
+			lines = []
+			with open(file, 'r') as f:
+				lines = f.readlines()
+			
+			outlines = []
+			strs = {}
+			for line in lines:
+				str_ = line.split('\t')[1]
+				strs[str_]=str_
+			with open(f'{folder}/JPN_Romaji_Test2_Plus/{_files[i]}', 'w') as f:
+				for str_ in strs:
+					f.write(f'{str_}\t{str_}\r\n')
+			logger.info('Sucessfully set up dict.txt')
+		
+		os.rename(files[i], f'{folder}/JPN_Romaji_Test2_Plus/{_files[i]}')
+	logger.info('Done setting up add_some_assets for LabelMakr.')
+
+spicytigermeat_asset()
+add_some_assets()
 logger.info('Successfully downloaded models. You may exit this window.')

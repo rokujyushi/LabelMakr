@@ -1,3 +1,13 @@
+# LabelMakr+ README
+LabelMakr+は、ユーザーがSVSの音素レベルのラベルを簡単に生成できるようにするGUIツールです。DiffSingerでの使用を目的としていますが、他のシステムにも簡単に適応できます。現在、LabelMakr+は英語、日本語、中国語、フランス語、韓国語の歌唱に対応しています！
+LabelMakr+は、LabelMakrの機能を拡張したバージョンで、Spydominoなどのサポートが追加されています。
+
+## 将来の予定とか
+- アライメントツール、[GAME](https://github.com/openvpi/GAME)の対応
+- 音声認識ツール、[Fun-ASR](https://github.com/openvpi/Fun-ASR)の対応
+- 日本語g2pの改善、[pyopenjtalk-plus](https://github.com/tsukumijima/pyopenjtalk-plus)の対応
+
+# LabelMakr README
 <p align="center">
   <img src="https://github.com/spicytigermeat/LabelMakr/blob/v030/assets/labelmakr.png" alt="LabelMakr 🛋️">
 </p>

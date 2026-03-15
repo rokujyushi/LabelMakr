@@ -14,9 +14,15 @@ lang_choice: '轉錄語言'
 run_trns: '執行轉錄'
 
 # aligner window strings:
+aligner_lbl: '選擇對齊器:'
+aligner_lbl_tt: '選擇使用 SOFA 或 pydomino 進行對齊。'
 model_lbl: '選擇 SOFA 模型:'
+pydomino_model_lbl: '選擇 pydomino 模型:'
+pydomino_model_lbl_tt: '選擇 pydomino 將使用的 ONNX 對齊模型。'
 op_lbl: '選擇輸出格式:'
 run_align: '執行 SOFA'
+run_align_pydomino: '執行 pydomino'
+run_align_pydomino_tt: '使用選擇的 pydomino 模型對齊標籤。'
 
 # settings:
 disp_lang: '顯示語言'

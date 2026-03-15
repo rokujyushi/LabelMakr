@@ -14,9 +14,15 @@ lang_choice: 'Bahasa Transkripsi'
 run_trns: 'Jalankan Transkripsi'
 
 # aligner window strings:
+aligner_lbl: 'Pilih aligner:'
+aligner_lbl_tt: 'Pilih SOFA atau pydomino untuk alignment.'
 model_lbl: 'Pilih Model SOFA:'
+pydomino_model_lbl: 'Pilih model pydomino:'
+pydomino_model_lbl_tt: 'Pilih model ONNX yang akan digunakan pydomino untuk alignment.'
 op_lbl: 'Pilih Format Keluaran:'
 run_align: 'Jalankan SOFA'
+run_align_pydomino: 'Jalankan pydomino'
+run_align_pydomino_tt: 'Align labels using the selected pydomino model.'
 
 # settings:
 disp_lang: 'Bahasa Tampilan'

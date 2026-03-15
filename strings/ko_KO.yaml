@@ -14,8 +14,12 @@ run_trns: "오디오 트랜스크립트"
 run_trns_tt: "Whisper로 말뭉치 폴더에 있는 파일의 트랜스 크립 션을 실행합니다."
 
 # aligner window strings:
+aligner_lbl: "정렬기 선택"
+aligner_lbl_tt: "SOFA 또는 pydomino 중에서 선택합니다."
 model_lbl: "Choose SOFA Model"
 model_lbl_tt: "Select the SOFA model you will use to align the phonemes to your transcriptions."
+pydomino_model_lbl: "Choose pydomino Model"
+pydomino_model_lbl_tt: "Select the ONNX model that pydomino will use to align the phonemes."
 op_lbl: "Choose output format"
 
 # note for translators:
@@ -29,6 +33,8 @@ op_lbl_tt: |
 
 run_align: "Align Labels"
 run_align_tt: "Aligns labels based on transcripts using the selected SOFA model."
+run_align_pydomino: "Align with pydomino"
+run_align_pydomino_tt: "Aligns labels based on transcripts using the selected pydomino model."
 
 # settings:
 disp_lang: "Display Language"

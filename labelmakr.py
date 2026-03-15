@@ -2,6 +2,7 @@ import os, sys, re
 sys.path.append('.')
 from glob import glob
 import logging
+import subprocess
 
 # GUI stuff
 import customtkinter as ctk
@@ -21,6 +22,7 @@ from pathlib import Path as P
 
 # LabelMakr specific functions
 import sofa_func # basically just a script with sofa inference
+import pydomino_func
 import whisper_func # transcriber class is here
 from labbu_func import labbu_func # for label editing, coming in future update.
 
@@ -37,7 +39,7 @@ STRINGS = P('./strings')
 CORPUS = P('./corpus')
 MODELS = P('./models')
 
-ctk.set_default_color_theme(P(ASSETS / 'ctk_tgm_theme.json'))
+ctk.set_default_color_theme(str(ASSETS / 'ctk_tgm_theme.json'))
 ctk.deactivate_automatic_dpi_awareness()
 
 # logger setup
@@ -108,6 +110,9 @@ class LabelMakr(ctk.CTk):
 				'g2p_cfg': g2p_cfg
 			}
 
+		self.pydomino_models = {'models':{}}
+		self.pydomino_models['models'].update(pydomino_func.find_pydomino_model_paths())
+
 		# init languages w/ezlocalizr
 		self.L = ezlocalizr(language=self.clang.get(),
 							string_path=STRINGS,
@@ -119,6 +124,7 @@ class LabelMakr(ctk.CTk):
 		self.wh_models = ['tiny', 'base', 'small', 'medium', 'large']
 		self.transcribe_lang_op = ['EN', 'JP', 'ZH', 'FR', 'KO']
 		self.transcribe_lang_op.sort()
+		self.aligner_choices = ['SOFA', 'pydomino']
 
 		# font stuff
 		pyglet.font.add_file(str(P(ASSETS / 'PixelOperator.ttf')))
@@ -295,31 +301,50 @@ class LabelMakr(ctk.CTk):
 		self.tabs.tab(self.tab_ttl_2).grid_rowconfigure(2, weight=3)
 
 		self.model_choice = ctk.StringVar(value='tgm_sofa_en')
+		self.aligner_choice = ctk.StringVar(value='SOFA')
 		self.op_mode = ctk.StringVar(value='htk')
 		self.op_choices = ['htk', 'TextGrid']
+		self.update_model_choices('SOFA')
+
+		self.aligner_lbl = ctk.CTkLabel(self.tabs.tab(self.tab_ttl_2),
+								  text=self.L('aligner_lbl'),
+								  font=self.font)
+		self.aligner_lbl.grid(row=0, column=0, padx=5, pady=(10, 5), sticky=tk.N)
+		self.aligner_lbl_tt = CTkToolTip(self.aligner_lbl, delay=self.tt_delay, message=self.L('aligner_lbl_tt'), font=self.font)
+
+		self.aligner_cmbo = ctk.CTkComboBox(self.tabs.tab(self.tab_ttl_2),
+									 values=self.aligner_choices,
+									 variable=self.aligner_choice,
+									 command=lambda x: self.change_aligner_mode(),
+									 font=self.font,
+									 dropdown_font=self.font,
+									 justify='center')
+		self.aligner_cmbo.set(self.aligner_choice.get())
+		self.aligner_cmbo.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N)
 
 		# choose sofa model
 		self.model_lbl = ctk.CTkLabel(self.tabs.tab(self.tab_ttl_2),
 									  text=self.L('model_lbl'),
 									  font=self.font)
-		self.model_lbl.grid(row=0, column=0, padx=5, pady=(10, 5), sticky=tk.N)
+		self.model_lbl.grid(row=0, column=1, padx=5, pady=(10, 5), sticky=tk.N)
 		self.model_lbl_tt = CTkToolTip(self.model_lbl, delay=self.tt_delay, message=self.L('model_lbl_tt'), font=self.font)
 
 		# model choice combobox
 		self.model_cmbo = ctk.CTkComboBox(self.tabs.tab(self.tab_ttl_2),
-										  values=self.sofa_models['models'],
+								  values=self.get_model_names(),
 										  variable=self.model_choice,
 										  font=self.font,
 										  dropdown_font=self.font,
 										  justify='center')
-		self.model_cmbo.set(self.model_choice.get())
-		self.model_cmbo.grid(row=1, column=0, padx=5, pady=5, sticky=tk.N)
+		if self.get_model_names():
+			self.model_cmbo.set(self.model_choice.get())
+		self.model_cmbo.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
 
 		# choose format
 		self.op_lbl = ctk.CTkLabel(self.tabs.tab(self.tab_ttl_2),
 								   text=self.L('op_lbl'),
 								   font=self.font)
-		self.op_lbl.grid(row=0, column=1, padx=5, pady=(10, 5), sticky=tk.N)
+		self.op_lbl.grid(row=2, column=0, padx=5, pady=(10, 5), sticky=tk.N)
 		self.op_lbl_tt = CTkToolTip(self.op_lbl, delay=self.tt_delay, message=self.L('op_lbl_tt'), font=self.font)
 
 		# model choice combobox
@@ -330,22 +355,18 @@ class LabelMakr(ctk.CTk):
 									   dropdown_font=self.font,
 									   justify='center')
 		self.op_cmbo.set(self.op_mode.get())
-		self.op_cmbo.grid(row=1, column=1, padx=5, pady=5, sticky=tk.N)
+		self.op_cmbo.grid(row=2, column=1, padx=5, pady=(10, 5), sticky=tk.N)
 
 		# align button
 		self.align_btn = ctk.CTkButton(self.tabs.tab(self.tab_ttl_2),
 									   text=self.L('run_align'),
-									   command=lambda: self.run_sofa(
-				   							self.sofa_models['models'][self.model_cmbo.get()]['ckpt_path'],
-				   							self.sofa_models['models'][self.model_cmbo.get()]['dict_path'],
-				   							self.sofa_models['models'][self.model_cmbo.get()]['g2p'],
-				   							self.sofa_models['models'][self.model_cmbo.get()]['g2p_model'],
-				   							self.sofa_models['models'][self.model_cmbo.get()]['g2p_cfg']),
+							   command=lambda: self.run_alignment(),
 									   image=self.align_ico,
 									   compound=tk.LEFT,
 									   font=self.font)
-		self.align_btn.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky=tk.NSEW)
+		self.align_btn.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky=tk.NSEW)
 		self.align_btn_tt = CTkToolTip(self.align_btn, delay=self.tt_delay, message=self.L('run_align_tt'), font=self.font)
+		self.change_aligner_mode()
 
 		#
 		#	Fix Label Tab GUI Code
@@ -549,8 +570,71 @@ class LabelMakr(ctk.CTk):
 				 g2p_model: str,
 				 g2p_cfg: str
 		):
-		x = threading.Thread(target=sofa_func.infer_sofa(ckpt, dictionary, self.op_cmbo.get(), self.matmul_var.get(), self.lang_cmbo.get(), g2p_bool, g2p_model, g2p_cfg,))
+		x = threading.Thread(target=sofa_func.infer_sofa,
+						 args=(ckpt, dictionary, self.op_cmbo.get(), self.matmul_var.get(), self.lang_cmbo.get(), g2p_bool, g2p_model, g2p_cfg))
 		x.start()
+
+	def run_pydomino(self, onnx_path: str):
+		x = threading.Thread(target=pydomino_func.infer_pydomino,
+						 args=(onnx_path, self.op_cmbo.get(), 3, CORPUS))
+		x.start()
+
+	def run_alignment(self):
+		model_name = self.model_cmbo.get()
+		if not model_name:
+			logger.warning('No alignment model selected.')
+			return
+
+		if self.aligner_choice.get() == 'pydomino':
+			if model_name not in self.pydomino_models['models']:
+				logger.warning('Selected pydomino model could not be found.')
+				return
+			self.run_pydomino(self.pydomino_models['models'][model_name]['onnx_path'])
+			return
+
+		if model_name not in self.sofa_models['models']:
+			logger.warning('Selected SOFA model could not be found.')
+			return
+
+		model = self.sofa_models['models'][model_name]
+		self.run_sofa(model['ckpt_path'], model['dict_path'], model['g2p'], model['g2p_model'], model['g2p_cfg'])
+
+	def get_model_names(self):
+		if self.aligner_choice.get() == 'pydomino':
+			return sorted(self.pydomino_models['models'].keys())
+		return sorted(self.sofa_models['models'].keys())
+
+	def update_model_choices(self, mode=None):
+		if mode is not None:
+			self.aligner_choice.set(mode)
+
+		model_names = self.get_model_names()
+		if model_names:
+			self.model_choice.set(model_names[0])
+		else:
+			self.model_choice.set('')
+
+	def change_aligner_mode(self):
+		self.update_model_choices(self.aligner_choice.get())
+		model_names = self.get_model_names()
+		self.model_cmbo.configure(values=model_names if model_names else [''])
+		if model_names:
+			self.model_cmbo.set(self.model_choice.get())
+			self.align_btn.configure(state='normal')
+		else:
+			self.model_cmbo.set('')
+			self.align_btn.configure(state='disabled')
+
+		if self.aligner_choice.get() == 'pydomino':
+			self.model_lbl.configure(text=self.L('pydomino_model_lbl'))
+			self.model_lbl_tt.configure(message=self.L('pydomino_model_lbl_tt'))
+			self.align_btn.configure(text=self.L('run_align_pydomino'))
+			self.align_btn_tt.configure(message=self.L('run_align_pydomino_tt'))
+		else:
+			self.model_lbl.configure(text=self.L('model_lbl'))
+			self.model_lbl_tt.configure(message=self.L('model_lbl_tt'))
+			self.align_btn.configure(text=self.L('run_align'))
+			self.align_btn_tt.configure(message=self.L('run_align_tt'))
 
 	def startfile(self, filename):
 		try:
@@ -617,15 +701,15 @@ class LabelMakr(ctk.CTk):
 			self.uhr_merge_cb.configure(state="disabled")
 
 	def change_appearance(self):
-		self.dark_mode = self.appearance_rbtn.get()
+		dark_mode = self.appearance_rbtn.get()
 
-		self.cfg['dark_mode'] = self.dark_mode
+		self.cfg['dark_mode'] = dark_mode
 
 		with open(P(ASSETS / 'cfg.yaml'), 'w', encoding='utf-8') as f:
 			yaml.dump(self.cfg, f, default_flow_style=False)
 			f.close()
 
-		if self.dark_mode:
+		if dark_mode:
 			ctk.set_appearance_mode('dark')
 			logger.info('Toggled dark mode.')
 		else:
@@ -774,16 +858,25 @@ class transcriptEditor(ctk.CTkToplevel):
 		self.save_next_btn.grid(row=0, column=4, padx=5, pady=5, sticky=tk.NSEW)
 		self.save_next_btn_tt = CTkToolTip(self.save_next_btn, delay=self.tt_delay, message=self.L('next'), font=self.font)
 
+	def get_selected_transcript_path(self):
+		selected = self.file_sel.get()
+		if not selected or isinstance(selected, list):
+			return None
+		return CORPUS / selected
+
 	def load_label(self):
 
 		self.text_box.delete("0.0", tk.END)
+		selected_path = self.get_selected_transcript_path()
+		if selected_path is None:
+			return
 
 		# load audio
-		sound_name = CORPUS / P(self.file_sel.get()).resolve()
+		sound_name = selected_path.with_suffix('.wav')
 
-		self.player.load(P(sound_name).with_suffix('.wav'))
+		self.player.load(sound_name)
 
-		open_path = CORPUS / P(self.file_sel.get(self.file_sel.curselection()))
+		open_path = selected_path
 
 		with open(open_path, 'r', encoding='utf-8') as lbl:
 			self.text_box.insert("0.0", lbl.read())
@@ -791,14 +884,16 @@ class transcriptEditor(ctk.CTkToplevel):
 
 	def save_label(self):
 
-		save_path = P(CORPUS / self.file_sel.get(self.file_sel.curselection()))
+		save_path = self.get_selected_transcript_path()
+		if save_path is None:
+			return
 		
 		try:
 			with open(save_path, 'w+', encoding='utf-8') as lbl:
 				lbl.write(self.text_box.get("0.0", tk.END))
 				lbl.close()
 		except:
-			logger.warning(f"Cannot write label for {self.file_sel.get(self.file_sel.curselection())}. ",
+			logger.warning(f"Cannot write label for {save_path}. ",
 				  "Make sure you do not have it open in an external program.")
 
 		logger.info(f'Wrote label as {str(save_path)}')
@@ -808,6 +903,10 @@ class transcriptEditor(ctk.CTkToplevel):
 		self.save_label()
 		index = self.file_sel.curselection()
 		try:
+			if isinstance(index, tuple):
+				index = index[0]
+			if index is None:
+				return
 			self.file_sel.activate(index+1)
 			self.load_label()
 		except:
@@ -815,10 +914,10 @@ class transcriptEditor(ctk.CTkToplevel):
 
 	def play_audio(self):
 		try:
-			x = threading.Thread(target=self.player.play(), args=())
+			x = threading.Thread(target=self.player.play, args=())
 			x.start()
 		except:
-			logger.warning(f"Unable to play audio file {P(sound_name).with_suffix('.wav')}")
+			logger.warning('Unable to play selected audio file.')
 
 	def pause_audio(self):
 		try:
