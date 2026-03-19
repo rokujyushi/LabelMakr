@@ -8,9 +8,13 @@ import glob
 from pypinyin import lazy_pinyin
 from pathlib import Path as P
 import logging
-from g2pk import G2p as G2pK
 import whisper
 from whisper.tokenizer import get_tokenizer
+
+try:
+	from g2pk import G2p as G2pK
+except ImportError:
+	G2pK = None
 
 def log(debug=False):
 	logger = logging.getLogger(__name__)
@@ -29,7 +33,7 @@ class Transcriber(object):
 		super().__init__()
 
 		self.log = log()
-		self.g2pk = G2pK()
+		self.g2pk = G2pK() if G2pK is not None else None
 
 		self.fr_contraction = ["m'", "n'", "l'", "j'", "c'", "ç'", "s'", "t'", "d'", "qu'"]
 		# referenced code from MLo7's MFA Notebook :)
@@ -109,6 +113,8 @@ class Transcriber(object):
 						trns_str = re.sub(f"{con}", f"{con} ", trns_str)
 				elif lang.upper() == "KO":
 					# returns simplified hangul
+					if self.g2pk is None:
+						raise ImportError('Korean transcription requires g2pK/konlpy/JPype1/python-mecab-ko to be installed.')
 					trns_str = self.g2pk(fxy(answer['text']))
 				else:
 					# the default, currently just being used by English.

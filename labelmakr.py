@@ -1,8 +1,58 @@
 import os, sys, re
 sys.path.append('.')
 from glob import glob
+import ctypes
 import logging
 import subprocess
+from pathlib import Path as P
+
+
+PORTABLE_DLL_DIR_HANDLES = []
+
+
+def preload_portable_dll(*candidates):
+	if os.name != 'nt' or not hasattr(ctypes, 'WinDLL'):
+		return
+
+	for candidate in candidates:
+		if not candidate.exists():
+			continue
+		try:
+			ctypes.WinDLL(str(candidate))
+			return
+		except OSError:
+			continue
+
+
+def bootstrap_portable_tk_runtime():
+	if os.name != 'nt' or not hasattr(os, 'add_dll_directory'):
+		return
+
+	project_root = P(__file__).resolve().parent
+	python_root = project_root / 'python'
+	if not python_root.exists():
+		return
+
+	for candidate in (
+		python_root,
+		python_root / 'DLLs',
+		python_root / 'tcl',
+		python_root / 'tcl' / 'tcl8.6',
+		python_root / 'tcl' / 'tk8.6',
+	):
+		if candidate.exists():
+			PORTABLE_DLL_DIR_HANDLES.append(os.add_dll_directory(str(candidate)))
+
+	os.environ.setdefault('TCL_LIBRARY', str(python_root / 'tcl' / 'tcl8.6'))
+	os.environ.setdefault('TK_LIBRARY', str(python_root / 'tcl' / 'tk8.6'))
+
+	preload_portable_dll(python_root / 'DLLs' / 'zlib1.dll', python_root / 'zlib1.dll')
+	preload_portable_dll(python_root / 'DLLs' / 'tcl86t.dll', python_root / 'tcl86t.dll')
+	preload_portable_dll(python_root / 'DLLs' / 'tk86t.dll', python_root / 'tk86t.dll')
+	preload_portable_dll(python_root / 'DLLs' / '_tkinter.pyd', python_root / '_tkinter.pyd')
+
+
+bootstrap_portable_tk_runtime()
 
 # GUI stuff
 import customtkinter as ctk
@@ -18,13 +68,17 @@ import pyglet
 
 # function stuff
 import yaml
-from pathlib import Path as P
 
 # LabelMakr specific functions
 import sofa_func # basically just a script with sofa inference
 import pydomino_func
 import whisper_func # transcriber class is here
-from labbu_func import labbu_func # for label editing, coming in future update.
+try:
+	from labbu_func import labbu_func # for label editing, coming in future update.
+	LABBU_IMPORT_ERROR = None
+except ModuleNotFoundError as exc:
+	labbu_func = None
+	LABBU_IMPORT_ERROR = exc
 
 #
 #	default global config stuffs
@@ -119,7 +173,11 @@ class LabelMakr(ctk.CTk):
 							default_lang='en_US')
 
 		# init labbu for label fixes
-		self.labu = labbu_func(lang='default')
+		self.labu = None
+		if labbu_func is not None:
+			self.labu = labbu_func(lang='default')
+		elif LABBU_IMPORT_ERROR is not None:
+			logger.warning(f'labbu is unavailable: {LABBU_IMPORT_ERROR}')
 
 		self.wh_models = ['tiny', 'base', 'small', 'medium', 'large']
 		self.transcribe_lang_op = ['EN', 'JP', 'ZH', 'FR', 'KO']
@@ -669,6 +727,9 @@ class LabelMakr(ctk.CTk):
 
 	def run_label_fix(self):
 		# uses labbu to fix the files
+		if self.labu is None:
+			logger.warning('Label fix tools are unavailable in this build.')
+			return
 
 		corpus_list = [name for name in os.listdir(str(P(CORPUS))) if os.path.isdir(str(P(CORPUS / name)))]
 
