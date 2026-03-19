@@ -163,4 +163,4 @@ cython_debug/
 corpus/
 assets/cfg.yaml
 onnx_model/*
-.github/prompt/*
+.github/prompts/*

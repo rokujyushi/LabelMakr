@@ -72,5 +72,6 @@ v030
 	- Here's a guide! https://github.com/spicytigermeat/LabelMakr/blob/v030/DOCS/implement_custom_sofa_model.md
 
 # LabelMakr+ 
-v031
+v040
 - Added support for pydomino models!
+- Updated credits to include bundled/downloaded assets and tools such as FFmpeg, pydomino assets.
