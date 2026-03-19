@@ -9,16 +9,16 @@ LabelMakr+は、LabelMakrの機能を拡張したバージョンで、Spydomino�
 
 # LabelMakr README
 <p align="center">
-  <img src="https://github.com/rokujyushi/LabelMakr/blob/v030/assets/labelmakr.png" alt="LabelMakr 🛋️">
+  <img src="https://github.com/rokujyushi/LabelMakr/blob/add-pydomino/assets/labelmakr.png" alt="LabelMakr 🛋️">
 </p>
 
 <p align="center">
-  <img src="https://github.com/rokujyushi/LabelMakr/blob/v030/.github/labelmakr_sc.png", alt="Screenshot of LabelMakr and the transcription editor.">
+  <img src="https://github.com/rokujyushi/LabelMakr/blob/add-pydomino/.github/labelmakr_sc.png", alt="Screenshot of LabelMakr and the transcription editor.">
 </p>
 
 LabelMakr is a GUI tool to help users easily generate SVS phoneme-level labels. It is intended for use with DiffSinger, but is easily adaptable for other systems. Currently, LabelMakr has full support for English, Japanese, Chinese, French and Korean singing!
 
-Please use the portable version for Windows found [here](https://github.com/rokujyushi/LabelMakr/releases/tag/v030).
+Please use the portable version for Windows found [here](https://github.com/rokujyushi/LabelMakr/releases/tag/add-pydomino).
 
 ## Community Contributions 🧑‍🤝‍🧑
 
@@ -27,12 +27,12 @@ Please use the portable version for Windows found [here](https://github.com/roku
 
 ## Custom SOFA Model Implementation
 
-Please check out the guide on how to implement custom SOFA models [here!](https://github.com/rokujyushi/LabelMakr/blob/v030/DOCS/implement_custom_sofa_model.md)
+Please check out the guide on how to implement custom SOFA models [here!](https://github.com/rokujyushi/LabelMakr/blob/add-pydomino/DOCS/implement_custom_sofa_model.md)
 
 ## Credits
 
-Please check out credits [here!](https://github.com/rokujyushi/LabelMakr/blob/v030/DOCS/credits.md)
+Please check out credits [here!](https://github.com/rokujyushi/LabelMakr/blob/add-pydomino/DOCS/credits.md)
 
 ## Manual Installation 🧰
 
-Read the guide on how to manually install LabelMakr [here!](https://github.com/rokujyushi/LabelMakr/blob/v030/DOCS/manual_install_guide.md)
+Read the guide on how to manually install LabelMakr [here!](https://github.com/rokujyushi/LabelMakr/blob/add-pydomino/DOCS/manual_install_guide.md)
