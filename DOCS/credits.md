@@ -9,6 +9,13 @@
 - [Japanese G2p Compiled Version](https://github.com/CjangCjengh/japanese_g2p) by CjangCjengh.
 - G2P models used are trained with [OpenUTAU's G2P system](https://github.com/stakira/OpenUtau/tree/master/py).
 
+## Installed Assets & Tools 📦
+
+- [FFmpeg shared build for Windows](https://github.com/BtbN/FFmpeg-Builds) by BtbN is downloaded and installed for audio decoding/conversion.
+- [pydomino](https://github.com/DwangoMediaVillage/pydomino) and its default [phoneme transition ONNX model](https://raw.githubusercontent.com/DwangoMediaVillage/pydomino/main/onnx_model/phoneme_transition_model.onnx) are provided by Dwango Media Village.
+- [JPN_Romaji_Test2_Plus](https://github.com/Greenleaf2001/SOFA_Models/releases/tag/JPN_Test2_Plus) Japanese SOFA model assets are provided by Greenleaf2001.
+- Some packaged model archives and trimmed redistributable assets are assembled for LabelMakr releases by tigermeat.
+
 ## GUI Translations 🗣️
 - English/Japanese: tigermeat
 - Traditional Chinese: ArchiVoice
