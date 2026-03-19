@@ -14,5 +14,5 @@ exit /b %ERRORLEVEL%
 	echo   package_portable.bat [corpus_dir]
 	echo.
 	echo Example:
-	echo   package_portable.bat "G:\LabelMakr_v031\corpus"
+	echo   package_portable.bat "G:\LabelMakr+_v040\corpus"
 	exit /b 1
