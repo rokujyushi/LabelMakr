@@ -1,11 +1,10 @@
 import os
 import logging
 import shutil
+import urllib.request
 import zipfile
 from pathlib import Path as P
 
-import requests
-from tqdm import tqdm
 
 #
 #	extract models into the proper location
@@ -23,22 +22,46 @@ if not folder.exists():
 
 
 def download_file(url, filepath):
-	r = requests.get(url, stream=True)
-	r.raise_for_status()
+	logger.info(f'Downloading {url}')
+	with urllib.request.urlopen(url) as response, open(filepath, 'wb') as file:
+		shutil.copyfileobj(response, file)
 
-	total_size = int(r.headers.get('content-length', 0))
-	block_size = 1024
 
-	with tqdm(total=total_size, unit='B', unit_scale=True) as pbar:
-		with open(filepath, 'wb') as file:
-			for data in r.iter_content(block_size):
-				if not data:
-					continue
-				pbar.update(len(data))
-				file.write(data)
+def replace_directory(source: P, target: P):
+	if target.exists():
+		shutil.rmtree(target)
+	shutil.move(str(source), str(target))
 
-	if total_size != 0 and pbar.n != total_size:
-		raise RuntimeError('Could not download file.')
+
+def install_ffmpeg_shared_asset():
+	logger.info('SetUp shared FFmpeg for LabelMakr.')
+	filepath = 'ffmpeg-n8.0-latest-win64-gpl-shared-8.0.zip'
+	extract_dir = P('./_ffmpeg_extract')
+
+	if extract_dir.exists():
+		shutil.rmtree(extract_dir)
+
+	url = 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.0-latest-win64-gpl-shared-8.0.zip'
+	download_file(url, filepath)
+	extract_dir.mkdir(exist_ok=True)
+
+	logger.info('Extracting shared FFmpeg...')
+	with zipfile.ZipFile(filepath, 'r') as archive:
+		archive.extractall(extract_dir)
+
+	bin_dirs = [candidate.parent for candidate in extract_dir.rglob('ffmpeg.exe')]
+	if not bin_dirs:
+		raise RuntimeError('Shared FFmpeg archive did not contain ffmpeg.exe.')
+
+	bin_dir = bin_dirs[0]
+	for source in bin_dir.iterdir():
+		name = source.name.lower()
+		if source.suffix.lower() == '.dll' or name in {'ffmpeg.exe', 'ffprobe.exe'}:
+			shutil.copy2(source, P('./') / source.name)
+
+	shutil.rmtree(extract_dir)
+	os.remove(filepath)
+	logger.info('Done setting up shared FFmpeg for LabelMakr.')
 
 
 def install_sofa_asset():
@@ -90,7 +113,9 @@ def add_some_assets():
 	logger.info('SetUp add_some_assets for LabelMakr.')
 	logger.info('Downloading JPN_Romaji_Test2_Plus models.')
 
-	url = 'https://github.com/Greenleaf2001/SOFA_Models/releases/tag/JPN_Test2_Plus'
+	url = 'https://github.com/Greenleaf2001/SOFA_Models/releases/download/JPN_Test2_Plus'
+	target_dir = folder / 'JPN_Romaji_Test2_Plus'
+	target_dir.mkdir(parents=True, exist_ok=True)
 	files = ['hparams.yaml','step.100000.ckpt','japanese-extension-sofa.txt']
 	for file in files:
 		download_file(f'{url}/{file}', file)
@@ -102,20 +127,24 @@ def add_some_assets():
 		if i == 2:
 			logger.info('Setup dict.txt')
 			lines = []
-			with open(file, 'r') as f:
+			with open(file, 'r', encoding='utf-8') as f:
 				lines = f.readlines()
 			
-			outlines = []
 			strs = {}
 			for line in lines:
 				str_ = line.split('\t')[1]
 				strs[str_]=str_
-			with open(f'{folder}/JPN_Romaji_Test2_Plus/{_files[i]}', 'w') as f:
+			with open(target_dir / _files[i], 'w', encoding='utf-8') as f:
 				for str_ in strs:
 					f.write(f'{str_}\t{str_}\r\n')
 			logger.info('Sucessfully set up dict.txt')
+			os.remove(file)
+			continue
 		
-		os.rename(files[i], f'{folder}/JPN_Romaji_Test2_Plus/{_files[i]}')
+		target_file = target_dir / _files[i]
+		if target_file.exists():
+			os.remove(target_file)
+		os.replace(files[i], target_file)
 	logger.info('Done setting up add_some_assets for LabelMakr.')
 
 def JP_g2p_asset():
@@ -129,9 +158,10 @@ def JP_g2p_asset():
 	logger.info('Unzipping...')
 	with zipfile.ZipFile(filepath, 'r') as archive:
 		archive.extractall('./')
-	os.rename('japanese_g2p', f'g2p-jp')
+	replace_directory(P('japanese_g2p'), P('g2p-jp'))
 	os.remove(filepath)
 	logger.info('Done setting up JP_g2p_asset for LabelMakr.')
+install_ffmpeg_shared_asset()
 install_sofa_asset()
 spicytigermeat_asset()
 add_some_assets()
