@@ -1,73 +1,122 @@
 # Manual installation 🧰
 
-If you'd like to install this manually, follow these steps!
-Requirements:
-- anaconda3
-- Windows/Linux (Tested on Win11/Ubuntu 22.04 with conda)
+Current LabelMakr+ uses a 3-runtime layout.
 
-Known issues:
-- It looks really ugly on Linux (issue with customtkinter being ran on python 3.8, not a priority to fix rn)
+- `gui/`: GUI only
+- `runtime_a/`: Whisper / NeMo transcription
+- `runtime_b/`: SOFA / pydomino alignment
+- `shared/`: common assets, FFmpeg, corpus, setup scripts
 
-1: Create a new environment and activate it, then CD to an empty folder.
+For Windows, the recommended method is still running [shared/setup_CPU.bat](../shared/setup_CPU.bat) or [shared/setup_GPU.bat](../shared/setup_GPU.bat).
 
-Windows:
-```
-conda create -n sofa_gui python=3.8 -y
-conda activate sofa_gui
-cd {path_to_folder}
-```
-Linux:
-```
-conda create -n sofa_gui python=3.8 -y
-source activate sofa_gui
-cd {path_to_folder}
-```
+If you need to install manually, use the steps below.
 
-2: Manually install torch.
+## Requirements
 
-Windows:
-```
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-```
-Linux:
-```
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+- Python 3.12 recommended
+- Windows is the primary target for the current portable workflow
+- Separate environments or embedded runtimes for `gui`, `runtime_a`, and `runtime_b`
+
+## 1. Prepare the workspace
+
+Clone the repository and keep the folder structure intact.
+
+```bash
+git clone https://github.com/rokujyushi/LabelMakr.git
+cd LabelMakr
 ```
 
-3: Install SOFA_GUI
+## 2. Prepare Python for each runtime
 
-Windows:
-```
-git clone https://github.com/spicytigermeat/SOFA_GUI.git
-pip install -r requirements.txt
-```
-Linux:
-```
-git clone https://github.com/spicytigermeat/SOFA_GUI.git
-pip3 install -r requirements.txt
-```
+Create one environment for each runtime, or place an embedded Python under each of these folders:
 
-4: Install SOFA
+- `gui/python`
+- `runtime_a/python`
+- `runtime_b/python`
 
-Windows:
-```
-cd SOFA_GUI
-git clone https://github.com/qiuqiao/SOFA.git
-pip install -r SOFA/requirements.txt
+If you prefer venv instead, the runtime code also detects:
+
+- `gui/.venv`
+- `runtime_a/.venv`
+- `runtime_b/.venv`
+
+## 3. Install GUI dependencies
+
+```bash
+python -m pip install -r gui/requirements.txt
 ```
 
-Linux:
+## 4. Install transcription runtime dependencies
+
+CPU example:
+
+```bash
+python -m pip install torch torchvision torchaudio torchcodec
+python -m pip install -r runtime_a/requirements.txt
 ```
-cd SOFA_GUI
-git clone https://github.com/qiuqiao/SOFA.git
-pip install -r SOFA/requirements.txt
+
+GPU example:
+
+```bash
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+python -m pip install torchcodec
+python -m pip install -r runtime_a/requirements.txt
 ```
 
-5: Manually install the SOFA Model.
+## 5. Install alignment runtime dependencies
 
-Download the files from [this release](https://github.com/spicytigermeat/SOFA-Models/releases/tag/v0.0.4).
+CPU example:
 
-Place "tgm_sofa_v004.ckpt" in `SOFA_GUI/SOFA/ckpt`
-Place "tgm_sofa_dict.txt" in `SOFA_GUI/SOFA/dictionary`
+```bash
+python -m pip install torch torchvision torchaudio
+python -m pip install -r runtime_b/requirements.txt
+```
 
-This should work, please let me know if any steps listed here do not achieve the desired result!
+GPU example:
+
+```bash
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+python -m pip install -r runtime_b/requirements.txt
+```
+
+Install `pydomino` separately if you need that aligner.
+
+## 6. Install shared assets
+
+Run:
+
+```bash
+python shared/install_assets.py
+```
+
+This installs assets into the current runtime layout:
+
+- shared FFmpeg -> `shared/ffmpeg.exe`, `shared/ffprobe.exe`
+- shared models -> `shared/models/`
+- Japanese g2p -> `runtime_a/g2p-jp/`
+- SOFA -> `runtime_b/SOFA/`
+- pydomino ONNX -> `runtime_b/onnx_model/`
+
+## 7. Add your corpus
+
+Place WAV files under:
+
+```text
+shared/corpus/
+```
+
+Nested speaker folders are fine.
+
+## 8. Start the app
+
+Run:
+
+```bash
+gui/run.bat
+```
+
+## Notes
+
+- NeMo may download model weights on first use.
+- `runtime_b` expects SOFA assets and pydomino ONNX to exist before alignment.
+- Root `requirements.txt` is now a compatibility aggregate; prefer the runtime-specific files.

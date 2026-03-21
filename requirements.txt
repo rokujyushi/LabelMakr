@@ -1,14 +1,22 @@
-openai-whisper
-customtkinter
-CTkListbox
-CTkToolTip
-pygame
-ftfy
-gdown
-pypinyin
-pillow
-pyglet
-lightning==2.1.2
-textgrid
-hydra-core==1.3.2
-omegaconf==2.3.0
+# Legacy aggregate requirements for development-only manual installs.
+# Preferred setup on Windows is:
+#   shared/setup_CPU.bat
+#   shared/setup_GPU.bat
+#
+# For manual installs, use the runtime-specific files directly:
+#   gui/requirements.txt
+#   runtime_a/requirements.txt
+#   runtime_b/requirements.txt
+
+-r gui/requirements.txt
+-r runtime_a/requirements.txt
+-r runtime_b/requirements.txt
+
+# Installed separately depending on CPU/GPU choice:
+# torch
+# torchvision
+# torchaudio
+# torchcodec
+
+# Provisioned separately during setup/packaging:
+# pydomino

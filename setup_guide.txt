@@ -1,3 +1,27 @@
-To install, decide if you want to install CPU or GPU. Then, run either "setup_CPU.bat" or "setup_GPU.bat".
+LabelMakr+ setup guide (3-runtime layout)
 
-This will automatically configure the Python environment, and install the SOFA models. After that, run "run.bat" and you should be good to go! 
+1. Choose CPU or GPU setup.
+	- CPU: run "shared\setup_CPU.bat"
+	- GPU: run "shared\setup_GPU.bat"
+
+2. The setup script will install dependencies into:
+	- "gui\python"
+	- "runtime_a\python"
+	- "runtime_b\python"
+
+3. The setup script will then run "shared\install_assets.py" and place assets into:
+	- shared FFmpeg -> "shared\ffmpeg.exe" / "shared\ffprobe.exe"
+	- shared models -> "shared\models"
+	- Japanese g2p -> "runtime_a\g2p-jp"
+	- SOFA -> "runtime_b\SOFA"
+	- pydomino ONNX -> "runtime_b\onnx_model"
+
+4. Put your audio files under "shared\corpus".
+
+5. Start the GUI with "gui\run.bat".
+
+Notes:
+- The GUI runtime only handles UI and job launching.
+- Transcription runs in "runtime_a".
+- Alignment runs in "runtime_b".
+- NeMo may download model weights on first use.

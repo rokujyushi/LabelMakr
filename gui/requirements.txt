@@ -1,0 +1,10 @@
+customtkinter==5.2.1
+CTkListbox==1.1
+CTkToolTip==0.8
+darkdetect==0.8.0
+ez-localizr==0.0.3
+ftfy==6.1.3
+Pillow>=12,<13
+pygame>=2.6,<3
+pyglet==2.0.10
+PyYAML>=6.0.2,<7

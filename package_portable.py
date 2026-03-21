@@ -12,7 +12,7 @@ from typing import Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "dist"
-DEFAULT_PACKAGE_NAME = "LabelMakr_v031"
+DEFAULT_PACKAGE_NAME = "LabelMakr+_v051"
 DEFAULT_PYTHON_EMBED_URL = "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip"
 PYDOMINO_INSTALL_URL = "git+https://github.com/DwangoMediaVillage/pydomino"
 DEFAULT_PYDOMINO_MODEL_URL = "https://raw.githubusercontent.com/DwangoMediaVillage/pydomino/main/onnx_model/phoneme_transition_model.onnx"
@@ -21,7 +21,6 @@ PYDOMINO_STATUS_FILE = "PYDOMINO_INSTALL_STATUS.txt"
 PYDOMINO_RUNTIME_PACKAGES = ["numpy"]
 RUNTIME_BOOTSTRAP_PACKAGES = ["setuptools<81", "packaging<25", "wheel"]
 BUILD_BOOTSTRAP_PACKAGES = ["setuptools<81", "packaging<25", "wheel"]
-LOCAL_RUNTIME_PACKAGES = ["ezlocalizr"]
 COMMON_VCVARS64_PATHS = [
     Path("C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvars64.bat"),
     Path("C:/Program Files/Microsoft Visual Studio/2022/BuildTools/VC/Auxiliary/Build/vcvars64.bat"),
@@ -31,29 +30,26 @@ COMMON_VCVARS64_PATHS = [
 ]
 
 REQUIRED_DIRS = [
-    "assets",
-    "models",
-    "strings",
+    "gui",
+    "runtime_a",
+    "runtime_b",
+    "shared",
+]
+
+PYTHON_RUNTIME_DIRS = [
+    "gui",
+    "runtime_a",
+    "runtime_b",
 ]
 
 REQUIRED_FILES = [
     "CHANGELOG.txt",
-    "ffmpeg.exe",
-    "get-pip.py",
-    "install_assets.py",
-    "labbu.py",
-    "labbu_func.py",
-    "labelmakr.py",
-    "pydomino_func.py",
-    "requirements.txt",
-    "run.bat",
-    "setup_CPU.bat",
-    "setup_GPU.bat",
     "setup_guide.txt",
-    "set_env.bat",
-    "sofa_func.py",
-    "whisper_func.py",
 ]
+
+FALLBACK_DIR_COPIES = {
+    "onnx_model": Path("runtime_b") / "onnx_model",
+}
 
 OPTIONAL_FILES = [
     "README.md",
@@ -117,7 +113,7 @@ def parse_args() -> argparse.Namespace:
         "--build-python",
         type=Path,
         default=None,
-        help="Full Python executable used to build a pydomino wheel for the embeddable runtime. Its major.minor must match the packaged Python.",
+        help="Full Python executable used to build a pydomino wheel outside the packaged runtimes. Its major.minor must match the packaged Python.",
     )
     parser.add_argument(
         "--build-vcvars",
@@ -252,20 +248,12 @@ def get_python_build_root(python_exe: Path) -> Path:
     return Path(output).resolve()
 
 
-def get_site_packages_dir(python_exe: Path) -> Path:
-    ensure_exists(python_exe, "Python executable")
-    output = run_command_capture(
-        [
-            str(python_exe),
-            "-c",
-            "import sysconfig; print(sysconfig.get_paths()['purelib'])",
-        ]
-    )
-    return Path(output).resolve()
-
-
 def ensure_directory(path: Path):
     path.mkdir(parents=True, exist_ok=True)
+
+
+def get_archive_path(output_root: Path, package_name: str) -> Path:
+    return output_root / f"{package_name}.zip"
 
 
 def has_matching_abi(version_a: tuple[int, int, int], version_b: tuple[int, int, int]) -> bool:
@@ -529,6 +517,21 @@ def populate_python_dir(package_root: Path, args: argparse.Namespace):
     write_portable_sitecustomize(destination)
 
 
+def resolve_get_pip_script(package_root: Path) -> Path:
+    candidates = [
+        package_root / "get-pip.py",
+        package_root.parent / "shared" / "get-pip.py",
+        PROJECT_ROOT / "shared" / "get-pip.py",
+        PROJECT_ROOT / "get-pip.py",
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(f"get-pip.py could not be found for runtime: {package_root}")
+
+
 def has_python_build_support(python_dir: Path) -> bool:
     include_dirs = [python_dir / "Include", python_dir / "include"]
     libs_dir = python_dir / "libs"
@@ -537,25 +540,8 @@ def has_python_build_support(python_dir: Path) -> bool:
     return has_headers and has_import_lib
 
 
-def bootstrap_pydomino_build_tools(python_exe: Path, package_root: Path):
-    run_command([str(python_exe), str(package_root / "get-pip.py")], cwd=package_root)
-    run_command(
-        [
-            str(python_exe),
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            "pip",
-            *BUILD_BOOTSTRAP_PACKAGES,
-            "cmake",
-        ],
-        cwd=package_root,
-    )
-
-
 def bootstrap_pip_only(python_exe: Path, package_root: Path):
-    run_command([str(python_exe), str(package_root / "get-pip.py")], cwd=package_root)
+    run_command([str(python_exe), str(resolve_get_pip_script(package_root))], cwd=package_root)
     run_command(
         [
             str(python_exe),
@@ -566,59 +552,6 @@ def bootstrap_pip_only(python_exe: Path, package_root: Path):
         ],
         cwd=package_root,
     )
-
-
-def install_application_requirements(package_root: Path):
-    python_exe = package_root / "python" / "python.exe"
-    requirements_path = package_root / "requirements.txt"
-    ensure_exists(python_exe, "Portable python executable")
-    ensure_exists(requirements_path, "requirements.txt")
-
-    bootstrap_pip_only(python_exe, package_root)
-    run_command(
-        [
-            str(python_exe),
-            "-m",
-            "pip",
-            "install",
-            "-r",
-            str(requirements_path),
-        ],
-        cwd=package_root,
-    )
-
-
-def copy_local_runtime_packages(package_root: Path, source_python_exe: Path):
-    source_site_packages = get_site_packages_dir(source_python_exe)
-    destination_site_packages = package_root / "python" / "Lib" / "site-packages"
-
-    for package_name in LOCAL_RUNTIME_PACKAGES:
-        copied_any = False
-        for candidate in [
-            source_site_packages / package_name,
-            source_site_packages / f"{package_name}.py",
-        ]:
-            if candidate.is_dir():
-                copy_optional_tree(candidate, destination_site_packages / candidate.name)
-                copied_any = True
-            elif candidate.is_file():
-                copy_file(candidate, destination_site_packages / candidate.name)
-                copied_any = True
-
-        for metadata_path in sorted(source_site_packages.glob(f"{package_name}-*.dist-info")):
-            copy_optional_tree(metadata_path, destination_site_packages / metadata_path.name)
-            copied_any = True
-        for metadata_path in sorted(source_site_packages.glob(f"{package_name}-*.egg-info")):
-            if metadata_path.is_dir():
-                copy_optional_tree(metadata_path, destination_site_packages / metadata_path.name)
-            else:
-                copy_file(metadata_path, destination_site_packages / metadata_path.name)
-            copied_any = True
-
-        if not copied_any:
-            raise FileNotFoundError(
-                f"Local runtime package '{package_name}' was not found in {source_site_packages}."
-            )
 
 
 def build_pydomino_wheel(build_python_exe: Path, vcvars_path: Path) -> Path:
@@ -701,6 +634,9 @@ def resolve_build_python(preferred: Optional[Path], target_version: tuple[int, i
     if preferred is not None:
         candidates.append(get_python_executable(preferred).resolve())
     else:
+        local_venv_python = PROJECT_ROOT / ".venv" / "Scripts" / "python.exe"
+        if local_venv_python.exists():
+            candidates.append(local_venv_python.resolve())
         candidates.append(Path(sys.executable).resolve())
 
     for candidate in candidates:
@@ -720,50 +656,36 @@ def resolve_build_python(preferred: Optional[Path], target_version: tuple[int, i
     return None
 
 
-def preinstall_pydomino(package_root: Path, args: argparse.Namespace):
-    python_dir = package_root / "python"
+def preinstall_pydomino(runtime_b_root: Path, args: argparse.Namespace):
+    python_dir = runtime_b_root / "python"
     python_exe = python_dir / "python.exe"
     if not python_exe.exists():
         raise FileNotFoundError(f"Portable python executable not found: {python_exe}")
+
+    bootstrap_pip_only(python_exe, runtime_b_root)
 
     if args.pydomino_wheel is not None:
         install_wheel_into_python(python_exe, args.pydomino_wheel.resolve())
         return
 
     target_version = get_python_version(python_exe)
+    build_python = resolve_build_python(args.build_python, target_version)
+    if build_python is None:
+        raise RuntimeError(
+            "A compatible full Python environment for building the pydomino wheel could not be found. "
+            "Use --build-python (or package_portable.bat with .venv) so the wheel is built outside runtime_b, "
+            "or provide --pydomino-wheel explicitly."
+        )
 
-    if not has_python_build_support(python_dir):
-        build_python = resolve_build_python(args.build_python, target_version)
-        if build_python is None:
-            raise RuntimeError(
-                "Portable Python does not include the development headers and import libraries "
-                "required to build pydomino from source, and no compatible full Python was found "
-                "to build a wheel externally. Use --build-python with a full Python whose major.minor "
-                "matches the packaged Python, or provide --pydomino-wheel."
-            )
+    vcvars_path = find_vcvars64(args.build_vcvars)
+    if vcvars_path is None:
+        raise RuntimeError(
+            "Building pydomino on Windows requires vcvars64.bat, but none was found. "
+            "Install Visual Studio Build Tools or pass --build-vcvars explicitly."
+        )
 
-        vcvars_path = find_vcvars64(args.build_vcvars)
-        if vcvars_path is None:
-            raise RuntimeError(
-                "Building pydomino on Windows requires vcvars64.bat, but none was found. "
-                "Install Visual Studio Build Tools or pass --build-vcvars explicitly."
-            )
-
-        wheel_path = build_pydomino_wheel(build_python, vcvars_path)
-        install_wheel_into_python(python_exe, wheel_path)
-        return
-
-    bootstrap_pydomino_build_tools(python_exe, package_root)
-    run_command(
-        [
-            str(python_exe),
-            "-m",
-            "pip",
-            "install",
-            PYDOMINO_INSTALL_URL,
-        ],
-        cwd=package_root,
-    )
+    wheel_path = build_pydomino_wheel(build_python, vcvars_path)
+    install_wheel_into_python(python_exe, wheel_path)
 
 
 def resolve_source(preferred: Optional[Path], fallback_name: str) -> Optional[Path]:
@@ -781,6 +703,12 @@ def package_workspace(package_root: Path, args: argparse.Namespace):
         ensure_exists(source_dir, "Required directory")
         copy_tree(source_dir, package_root / directory_name)
 
+    for source_name, target_relative_path in FALLBACK_DIR_COPIES.items():
+        source_dir = PROJECT_ROOT / source_name
+        destination_dir = package_root / target_relative_path
+        if source_dir.exists() and not destination_dir.exists():
+            copy_tree(source_dir, destination_dir)
+
     for file_name in REQUIRED_FILES:
         source_file = PROJECT_ROOT / file_name
         ensure_exists(source_file, "Required file")
@@ -791,22 +719,24 @@ def package_workspace(package_root: Path, args: argparse.Namespace):
         if source_file.exists():
             copy_file(source_file, package_root / file_name)
 
-    populate_python_dir(package_root, args)
+    for runtime_name in PYTHON_RUNTIME_DIRS:
+        populate_python_dir(package_root / runtime_name, args)
 
     optional_sources = {
         "corpus": resolve_source(args.corpus_dir, "corpus"),
     }
 
     for target_name, source_dir in optional_sources.items():
+        target_root = package_root / "shared"
         if source_dir is None:
             if target_name == "corpus":
-                (package_root / target_name).mkdir(parents=True, exist_ok=True)
+                (target_root / target_name).mkdir(parents=True, exist_ok=True)
             continue
 
         ensure_exists(source_dir, f"{target_name} source")
         if not source_dir.is_dir():
             raise NotADirectoryError(f"{target_name} source is not a directory: {source_dir}")
-        copy_tree(source_dir, package_root / target_name)
+        copy_tree(source_dir, target_root / target_name)
 
 
 def main():
@@ -815,6 +745,10 @@ def main():
     output_root = args.output_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)
     package_root = output_root / args.package_name
+    archive_path = get_archive_path(output_root, args.package_name)
+
+    if args.zip and archive_path.exists():
+        archive_path.unlink()
 
     if package_root.exists():
         if not args.force:
@@ -825,14 +759,13 @@ def main():
 
     package_root.mkdir(parents=True, exist_ok=True)
     package_workspace(package_root, args)
-    install_application_requirements(package_root)
-    copy_local_runtime_packages(package_root, get_python_executable(args.build_python or Path(sys.executable)))
 
     pydomino_status = None
     if not args.skip_preinstall_pydomino:
         try:
-            preinstall_pydomino(package_root, args)
-            populate_pydomino_model(package_root, args)
+            runtime_b_root = package_root / "runtime_b"
+            preinstall_pydomino(runtime_b_root, args)
+            populate_pydomino_model(runtime_b_root, args)
             pydomino_status = "pydomino was preinstalled successfully."
         except (FileNotFoundError, RuntimeError, subprocess.CalledProcessError) as exc:
             pydomino_status = (
@@ -851,13 +784,11 @@ def main():
         write_status_file(package_root, pydomino_status)
 
     if args.zip:
-        archive_path = output_root / args.package_name
-        if (output_root / f"{args.package_name}.zip").exists():
-            (output_root / f"{args.package_name}.zip").unlink()
-        shutil.make_archive(str(archive_path), "zip", output_root, args.package_name)
-        print(f"Created zip archive: {archive_path}.zip")
+        shutil.make_archive(str(archive_path.with_suffix('')), "zip", output_root, args.package_name)
+        print(f"Created zip archive: {archive_path}")
 
     print(f"Packaged LabelMakr to: {package_root}")
+    print("Runtime requirements are not preinstalled. Run shared/setup_CPU.bat or shared/setup_GPU.bat inside the packaged folder.")
     if pydomino_status is not None:
         print(pydomino_status)
 

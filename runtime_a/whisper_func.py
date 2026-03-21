@@ -1,0 +1,159 @@
+import sys
+import os
+from ftfy import fix_text as fxy
+import subprocess
+import re
+import glob
+from pypinyin import lazy_pinyin
+from pathlib import Path as P
+import logging
+import whisper
+from whisper.tokenizer import get_tokenizer
+
+MODULE_ROOT = P(__file__).resolve().parent
+
+
+def require_env_path(env_name):
+	value = os.environ.get(env_name)
+	if not value:
+		raise RuntimeError(f'{env_name} is not set. Direct execution is unsupported; launch through runtime_a/worker.py.')
+	return P(value).resolve()
+
+
+WORKSPACE_ROOT = require_env_path('LABELMAKR_WORKSPACE_ROOT')
+SHARED_ROOT = require_env_path('LABELMAKR_SHARED_ROOT')
+CORPUS_ROOT = require_env_path('LABELMAKR_CORPUS_DIR')
+
+
+def resolve_g2p_jp_executable():
+	g2p_path = os.environ.get('LABELMAKR_G2P_JP_EXE')
+	if not g2p_path:
+		raise RuntimeError('LABELMAKR_G2P_JP_EXE is not set. Launch transcription through runtime_a/worker.py.')
+	return P(g2p_path).resolve()
+
+try:
+	from g2pk import G2p as G2pK
+except ImportError:
+	G2pK = None
+
+def log(debug=False):
+	logger = logging.getLogger(__name__)
+
+	logging.basicConfig(format="| %(levelname)s | %(message)s | %(asctime)s |",
+						datefmt="%H:%M:%S")
+
+	if debug:
+		logger.setLevel(logging.DEBUG)
+	logger.setLevel(logging.INFO)
+
+	return logger
+
+class Transcriber(object):
+	def __init__(self, lang, wh_model):
+		super().__init__()
+
+		self.log = log()
+		self.g2pk = G2pK() if G2pK is not None else None
+
+		self.fr_contraction = ["m'", "n'", "l'", "j'", "c'", "ç'", "s'", "t'", "d'", "qu'"]
+		# referenced code from MLo7's MFA Notebook :)
+		self.model = whisper.load_model(wh_model)
+		whisper.DecodingOptions(language=lang.lower())
+		self.tokenizer = get_tokenizer(multilingual=False)
+		self.number_tokens = [i for i in range(self.tokenizer.eot) if all(c in "0123456789" for c in self.tokenizer.decode([i]))]
+
+	def jpn_g2p(self, jpn):
+
+		# uses .exe version of openjtalk G2p
+		phonemes = subprocess.check_output([str(resolve_g2p_jp_executable()), '-rs', jpn.replace(' ', '')], shell=False)
+		g2p_op = str(phonemes)
+		fixed = re.sub(r"([aeiouAIEOUN])", r" \1 ", g2p_op[2:-5])
+		# fix cl
+		fixed = re.sub("cl", "cl ", fixed)
+		# remove punctuation
+		fixed = re.sub(r"[.!?,]", "", fixed)
+		# remove extra spaces
+		fixed = re.sub(" {2,}", " ", fixed)
+		# lowercase any uppercase vowels but _NOT_ [N]
+		fixed = re.sub("A", "a", fixed)
+		fixed = re.sub("I", "i", fixed)
+		fixed = re.sub("U", "u", fixed)
+		fixed = re.sub("E", "e", fixed)
+		fixed = re.sub("O", "o", fixed)
+		return fixed
+
+	def run_transcription(self, lang):
+
+		for file in glob.glob(str(CORPUS_ROOT / '**/*.wav'), recursive=True):
+			try:
+				out_name = P(file).with_suffix('.txt')
+				out2_name = file[:-4] +"_Fixed"+ '.txt'
+				out3_name = file[:-4] +"_JP"+ '.txt'
+				file_flag = os.path.exists(out2_name)
+				file_flag2 = os.path.exists(out3_name)
+				if file_flag2:
+					print("skip：",out3_name)
+					continue
+				
+				answer = {}
+				if not file_flag:
+				# get transcription from Whisper
+					whisper.DecodingOptions(language=lang.lower())
+					answer = self.model.transcribe(file, suppress_tokens=[-1] + self.number_tokens)
+				else:
+					with open(out2_name, 'r+', encoding='utf-8') as out:
+						answer['text'] = out.read()
+						out.close()
+				
+				# language specifics here
+				if lang.upper() == "JP":
+					# turn the kanji into G2p output
+					trns_str_kanjis = fxy(answer['text']).splitlines()
+					if not file_flag2:
+						with open(out3_name, 'w+', encoding='utf-8') as out:
+							out.write(answer['text'])
+							out.close()
+					trns_str =''
+					i = 0 
+					for trns_str_kanji in trns_str_kanjis:
+						i=i+1
+						print(f"line：{i}")
+						trns_str = trns_str + self.jpn_g2p(trns_str_kanji)+"\r\n" 
+				elif lang.upper() == "ZH":
+					# remove any spaces just in case ig
+					hanzi_list = lazy_pinyin(re.sub(' ', '', fxy(answer['text'])))	
+					trns_str = ""
+					for word in hanzi_list:
+						trns_str += f"{word} "
+				elif lang.upper() == "FR":
+					# adds a space after any contractions for the sake of the dictionary
+					trns_str = re.sub(r"[-]", " ", fxy(answer['text']).lower())
+					trns_str = re.sub(r"[A-Za-z0-9]+$", "", trns_str)
+					for con in self.fr_contraction:
+						trns_str = re.sub(f"{con}", f"{con} ", trns_str)
+				elif lang.upper() == "KO":
+					# returns simplified hangul
+					if self.g2pk is None:
+						raise ImportError('Korean transcription requires g2pK/konlpy/JPype1/python-mecab-ko to be installed.')
+					trns_str = self.g2pk(fxy(answer['text']))
+				else:
+					# the default, currently just being used by English.
+					trns_str = fxy(answer['text']).lower()
+				
+				# remove any punctuation
+				trns_str = re.sub(r"[.,!?]", "", trns_str)
+
+				# write file out
+				with open(out_name, 'w+', encoding='utf-8') as out:
+					out.write(trns_str)
+					out.close()
+
+				self.log.info(f'Wrote transcription for {file} in corpus.')
+
+			except RuntimeError as e:
+				self.log.warning(f'Error in transcribing: {e}')
+
+		self.log.info('Completed All Transcriptions')
+
+if __name__ == "__main__":
+	raise SystemExit('Direct execution is unsupported; launch through runtime_a/worker.py.')
