@@ -12,7 +12,7 @@ from typing import Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "dist"
-DEFAULT_PACKAGE_NAME = "LabelMakr+_v051"
+DEFAULT_PACKAGE_NAME = "LabelMakr+_v052"
 DEFAULT_PYTHON_EMBED_URL = "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip"
 PYDOMINO_INSTALL_URL = "git+https://github.com/DwangoMediaVillage/pydomino"
 DEFAULT_PYDOMINO_MODEL_URL = "https://raw.githubusercontent.com/DwangoMediaVillage/pydomino/main/onnx_model/phoneme_transition_model.onnx"

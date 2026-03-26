@@ -11,7 +11,7 @@ if errorlevel 1 goto :error
 call :install_runtime "runtime_a" "%ROOT_DIR%\runtime_a\python\python.exe" "%ROOT_DIR%\runtime_a\requirements.txt" "torch torchvision torchaudio torchcodec"
 if errorlevel 1 goto :error
 
-call :install_runtime "runtime_b" "%ROOT_DIR%\runtime_b\python\python.exe" "%ROOT_DIR%\runtime_b\requirements.txt" "torch torchvision torchaudio"
+call :install_runtime "runtime_b" "%ROOT_DIR%\runtime_b\python\python.exe" "%ROOT_DIR%\runtime_b\requirements.txt" "torch torchvision torchaudio torchcodec"
 if errorlevel 1 goto :error
 
 echo Installing shared assets...

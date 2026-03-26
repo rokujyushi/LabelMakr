@@ -16,6 +16,24 @@ LabelMakr+ setup guide (3-runtime layout)
 	- SOFA -> "runtime_b\SOFA"
 	- pydomino ONNX -> "runtime_b\onnx_model"
 
+	Feature-specific asset setup commands:
+	- Full asset setup:
+	  python shared\install_assets.py
+	- FFmpeg only:
+	  python shared\install_assets.py --skip-sofa --skip-models --skip-g2p --skip-pydomino-onnx
+	- SOFA only:
+	  python shared\install_assets.py --skip-ffmpeg --skip-models --skip-g2p --skip-pydomino-onnx
+	- Shared models only:
+	  python shared\install_assets.py --skip-ffmpeg --skip-sofa --skip-g2p --skip-pydomino-onnx
+	- Japanese g2p only:
+	  python shared\install_assets.py --skip-ffmpeg --skip-sofa --skip-models --skip-pydomino-onnx
+	- pydomino ONNX only:
+	  python shared\install_assets.py --skip-ffmpeg --skip-sofa --skip-models --skip-g2p
+	- Transcription-related assets only (FFmpeg + g2p):
+	  python shared\install_assets.py --skip-sofa --skip-models --skip-pydomino-onnx
+	- Alignment-related assets only (SOFA + models + pydomino ONNX):
+	  python shared\install_assets.py --skip-ffmpeg --skip-g2p
+
 4. Put your audio files under "shared\corpus".
 
 5. Start the GUI with "gui\run.bat".

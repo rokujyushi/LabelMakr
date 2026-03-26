@@ -5,6 +5,22 @@ omegaconf==2.3.0
 PyYAML>=6.0.2,<7
 TextGrid==1.5
 
+# SOFA runtime extras
+# Do not install `runtime_b/SOFA/requirements.txt` directly here.
+# That file pins older versions (notably NumPy/librosa) which can conflict with
+# the Python 3.12 portable runtime and the rest of runtime_b.
+click>=8,<9
+einops>=0.6,<1
+h5py>=3.10,<4
+librosa>=0.10,<1
+matplotlib>=3.8,<4
+numba>=0.59,<1
+pandas>=2.2,<3
+tensorboard>=2.16,<3
+tensorboardX>=2.6,<3
+tqdm>=4.66,<5
+chardet>=5,<6
+
 # Installed separately by setup_CPU.bat / setup_GPU.bat
 # torch
 # torchaudio

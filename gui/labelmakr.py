@@ -326,7 +326,7 @@ class LabelMakr(ctk.CTk):
 
 		# copyright label at the bottom of the screen
 		self.credits = ctk.CTkLabel(self, 
-									text=fxy('© tigermeat 2023-2024 | rokujyushi 2026 | v051'), 
+									text=fxy('© tigermeat 2023-2024 | rokujyushi 2026 | v052'), 
 									text_color="gray50",
 									font=self.font)
 		self.credits.grid(padx=5, pady=(0, 5), sticky=tk.EW, columnspan=2)

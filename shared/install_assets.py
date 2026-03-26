@@ -91,7 +91,7 @@ def install_sofa_asset():
 			raise RuntimeError('SOFA archive could not be extracted.')
 
 		replace_directory(extracted[0], RUNTIME_B_SOFA_ROOT)
-
+		
 	logger.info('Done setting up SOFA for runtime_b.')
 
 
@@ -175,7 +175,7 @@ def main():
 		install_sofa_asset()
 	if not args.skip_models:
 		install_shared_models_asset()
-		install_extra_jpn_model_asset()
+		# install_extra_jpn_model_asset()
 	if not args.skip_g2p:
 		install_japanese_g2p_asset()
 	if not args.skip_pydomino_onnx:

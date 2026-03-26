@@ -14,7 +14,7 @@ if errorlevel 1 goto :error
 "%ROOT_DIR%\runtime_a\python\python.exe" -m pip install torchcodec
 if errorlevel 1 goto :error
 
-call :install_runtime "runtime_b" "%ROOT_DIR%\runtime_b\python\python.exe" "%ROOT_DIR%\runtime_b\requirements.txt" "%TORCH_GPU_PACKAGES%"
+call :install_runtime "runtime_b" "%ROOT_DIR%\runtime_b\python\python.exe" "%ROOT_DIR%\runtime_b\requirements.txt" "%TORCH_GPU_PACKAGES% torchcodec"
 if errorlevel 1 goto :error
 
 echo Installing shared assets...
